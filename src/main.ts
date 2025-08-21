@@ -5,6 +5,7 @@ import { BigIntSerializerInterceptor } from './interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  process.env.TZ = 'Asia/Seoul'; // 한국 시간대 설정
   app.setGlobalPrefix('v1');
   app.useGlobalPipes(
     new ValidationPipe({
