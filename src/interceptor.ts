@@ -6,20 +6,37 @@ import {
 } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 
-function serializeBigInt(value: any): any {
-  if (typeof value === 'bigint') return value.toString();
-  if (Array.isArray(value)) return value.map(serializeBigInt);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([k, v]) => [k, serializeBigInt(v)]),
-    );
-  }
-  return value;
-}
-
 @Injectable()
 export class BigIntSerializerInterceptor implements NestInterceptor {
-  intercept(_ctx: ExecutionContext, next: CallHandler): Observable<any> {
-    return next.handle().pipe(map((data) => serializeBigInt(data)));
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    return next.handle().pipe(map((data) => this.serializeData(data)));
+  }
+
+  private serializeData(data: any): any {
+    if (data === null || data === undefined) {
+      return data;
+    }
+
+    if (typeof data === 'bigint') {
+      return data.toString();
+    }
+
+    if (data instanceof Date) {
+      return data.toISOString(); // ← Date 객체를 ISO 문자열로 변환
+    }
+
+    if (Array.isArray(data)) {
+      return data.map((item) => this.serializeData(item));
+    }
+
+    if (typeof data === 'object') {
+      const serialized: any = {};
+      for (const [key, value] of Object.entries(data)) {
+        serialized[key] = this.serializeData(value);
+      }
+      return serialized;
+    }
+
+    return data;
   }
 }
