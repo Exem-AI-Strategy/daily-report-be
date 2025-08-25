@@ -7,13 +7,13 @@ import {
   MinLength,
 } from 'class-validator';
 
-export class createUserDto {
+export class CreateUserDto {
   @IsString() name: string;
   @IsEmail() email: string;
   @IsString() @MinLength(8) password: string;
 }
 
-export class signUpResponseData {
+export class SignUpResponseData {
   @IsNumber() userId: number;
   @IsString() userName: string;
   @IsEmail() email: string;

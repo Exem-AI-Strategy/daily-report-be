@@ -105,7 +105,7 @@ export class ReportsService {
   ): Promise<ReportData> {
     await this.findOne(reportId, userId); // 권한 확인
 
-    const updateData:  = {
+    const updateData: any = {
       user_id: BigInt(userId),
       report_start_date: updateReportDto.reportStartDate,
       report_end_date: updateReportDto.reportEndDate,
