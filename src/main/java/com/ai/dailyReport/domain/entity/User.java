@@ -1,6 +1,7 @@
 package com.ai.dailyReport.domain.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -45,5 +46,13 @@ public class User {
     
     public boolean isUser() {
         return ROLE_USER.equals(this.role);
+    }
+
+    @Builder
+    public User(String name, String email, String password, String role) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = role;
     }
 }
