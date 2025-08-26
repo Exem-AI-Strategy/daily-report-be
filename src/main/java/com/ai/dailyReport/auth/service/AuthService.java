@@ -1,5 +1,6 @@
 package com.ai.dailyReport.auth.service;
 
+import com.ai.dailyReport.auth.jwt.JwtTokenProvider;
 import com.ai.dailyReport.domain.entity.User;
 import com.ai.dailyReport.domain.repository.UserRepository;
 
@@ -29,6 +30,7 @@ public class AuthService {
     
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
     
     // JWT 시크릿 키를 String으로 받아서 Key로 변환
     private Key getSecretKey() {
@@ -47,16 +49,6 @@ public class AuthService {
     }
     
     public String generateJwt(User user) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("email", user.getEmail());
-        claims.put("role", user.getRole());
-        
-        return Jwts.builder()
-            .setClaims(claims)
-            .setSubject(user.getUserId().toString())
-            .setIssuedAt(new Date(System.currentTimeMillis()))
-            .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
-            .signWith(getSecretKey())
-            .compact();
+      return jwtTokenProvider.generateToken(user.getEmail());
     }
 }
