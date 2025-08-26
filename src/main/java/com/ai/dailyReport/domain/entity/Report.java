@@ -1,6 +1,7 @@
 package com.ai.dailyReport.domain.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -50,5 +51,14 @@ public class Report {
     
     public boolean isUpcoming() {
         return LocalDateTime.now().isBefore(reportStartDate);
+    }
+
+    @Builder
+    public Report(User user, LocalDateTime reportStartDate, LocalDateTime reportEndDate, String title, String content) {
+        this.user = user;
+        this.reportStartDate = reportStartDate;
+        this.reportEndDate = reportEndDate;
+        this.title = title;
+        this.content = content;
     }
 }
