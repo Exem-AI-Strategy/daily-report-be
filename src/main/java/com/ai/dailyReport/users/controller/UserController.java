@@ -20,7 +20,7 @@ public class UserController {
     private final UserService userService;
     
     // 사용자 생성
-    @PostMapping
+    @PostMapping("/signup")
     public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody UserCreateDto createDto) {
         UserResponseDto createdUser = userService.createUser(createDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
