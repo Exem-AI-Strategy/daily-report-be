@@ -11,7 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,13 +62,13 @@ public class ReportService {
     // 날짜 범위로 리포트 조회
     public List<ReportResponseDto> findByUserIdAndDateRange(
         Long userId, 
-        LocalDateTime startDate, 
-        LocalDateTime endDate
+        LocalDate startDate, 
+        LocalDate endDate
     ) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
-            
-        return reportRepository.findByUserAndReportStartDateBetween(user, startDate, endDate).stream()
+        
+        return reportRepository.findByUserAndReportStartDateBetween(user, startDate.atStartOfDay(), endDate.atTime(LocalTime.MAX)).stream()
             .map(ReportResponseDto::from)
             .collect(Collectors.toList());
     }
