@@ -1,7 +1,8 @@
 package com.ai.dailyReport.auth.service;
 
 import com.ai.dailyReport.domain.entity.User;
-import com.ai.dailyReport.repository.UserRepository;
+import com.ai.dailyReport.domain.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 
 
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 
 import java.nio.charset.StandardCharsets;
