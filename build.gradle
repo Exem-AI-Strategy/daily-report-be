@@ -44,6 +44,9 @@ dependencies {
 	
 	// Validation 추가
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+  // env 추가
+  implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 }
 
 tasks.named('test') {

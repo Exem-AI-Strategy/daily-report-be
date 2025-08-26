@@ -21,6 +21,10 @@ spring:
         use_sql_comments: true
     open-in-view: false
 
+  # devtools 설정
+  devtools:
+    restart:
+      enabled: false
   # Jackson 설정 (JSON 직렬화/역직렬화)
   jackson:
     time-zone: Asia/Seoul
@@ -42,4 +46,4 @@ logging:
 server:
   port: 8080
   servlet:
-    context-path: /v2/api
+    context-path: /v1
