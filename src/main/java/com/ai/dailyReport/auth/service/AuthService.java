@@ -1,6 +1,7 @@
 package com.ai.dailyReport.auth.service;
 
 import com.ai.dailyReport.auth.jwt.JwtTokenProvider;
+import com.ai.dailyReport.common.exception.UnauthorizedException;
 import com.ai.dailyReport.domain.entity.User;
 import com.ai.dailyReport.domain.repository.UserRepository;
 
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -23,7 +25,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-    @Value("${jwt.secret}")
+    @Value("${jwt.secret}") 
     private String jwtSecret;
     @Value("${jwt.expiration}")
     private Long jwtExpiration;
@@ -47,8 +49,14 @@ public class AuthService {
         
         throw new RuntimeException("Invalid credentials");
     }
-    
-    public String generateJwt(User user) {
-      return jwtTokenProvider.generateToken(user.getEmail());
+
+    public Long getCurrentUserId(Authentication authentication) {
+      if (authentication == null) {
+        throw new UnauthorizedException("Unauthorized");
+    }
+      String email = authentication.getName(); // CustomUserDetailsService에서 username=email로 설정
+      User user = userRepository.findByEmail(email)
+        .orElseThrow(() -> new RuntimeException("User not found"));
+      return user.getUserId();
     }
 }
