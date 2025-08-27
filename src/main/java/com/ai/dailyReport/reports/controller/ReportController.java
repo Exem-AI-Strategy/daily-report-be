@@ -1,13 +1,16 @@
 package com.ai.dailyReport.reports.controller;
 
+
+import com.ai.dailyReport.auth.controller.AuthController;
+import com.ai.dailyReport.auth.service.AuthService;
 import com.ai.dailyReport.common.exception.UnauthorizedException;
 import com.ai.dailyReport.common.response.ApiResponse;
-import com.ai.dailyReport.domain.entity.User;
-import com.ai.dailyReport.domain.repository.UserRepository;
 import com.ai.dailyReport.reports.dto.ReportCreateDto;
 import com.ai.dailyReport.reports.dto.ReportResponseDto;
 import com.ai.dailyReport.reports.dto.ReportUpdateDto;
 import com.ai.dailyReport.reports.service.ReportService;
+import com.ai.dailyReport.users.service.UserService;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -27,7 +30,8 @@ import java.util.List;
 public class ReportController {
 
 	private final ReportService reportService;
-	private final UserRepository userRepository;
+  private final AuthService authService;
+  private final UserService userService;
 
 	// Report 생성 (본문 userId 없으면 토큰 사용자로 대체)
 	@PostMapping
@@ -35,7 +39,8 @@ public class ReportController {
 		@Valid @RequestBody ReportCreateDto dto,
 		Authentication authentication
 	) {
-		Long userId = getCurrentUserId(authentication);
+		String email = authentication.getName();
+    Long userId = userService.findByEmail(email).getUserId();
 
 		ReportResponseDto created = reportService.createReport(userId, dto);
 		return ResponseEntity
@@ -43,14 +48,32 @@ public class ReportController {
 			.body(ApiResponse.success("Report가 성공적으로 생성되었습니다.", created));
 	}
 
-	// 주간 조회 ?startDate=yyyy-MM-dd&endDate=yyyy-MM-dd
+  // 주간 조회 (관리자용)
+  @GetMapping("/weekly/{userId}")
+  public ResponseEntity<ApiResponse<WeeklyPayload>> findWeeklyReportsByUserId(
+    @PathVariable Long userId,
+    @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+    @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
+    Authentication authentication
+  )
+  {
+    String role = userService.findByEmail(authentication.getName()).getRole();
+    if (!role.equals("ADMIN")) {
+      throw new UnauthorizedException("Unauthorized: 관리자 권한이 필요합니다.");
+    }
+    List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, startDate, endDate);
+    WeeklyPayload payload = new WeeklyPayload(startDate, endDate, reports);
+    return ResponseEntity.ok(ApiResponse.success("주간 Report 조회에 성공했습니다.", payload));
+  }
+
+  // 주간 조회 ?startDate=yyyy-MM-dd&endDate=yyyy-MM-dd
 	@GetMapping("/weekly")
 	public ResponseEntity<ApiResponse<WeeklyPayload>> findWeeklyReports(
 		@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
 		@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
 		Authentication authentication
 	) {
-		Long userId = getCurrentUserId(authentication);
+		Long userId = authService.getCurrentUserId(authentication);
 
 		List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, startDate, endDate);
 		WeeklyPayload payload = new WeeklyPayload(startDate, endDate, reports);
@@ -58,13 +81,28 @@ public class ReportController {
 		return ResponseEntity.ok(ApiResponse.success("주간 Report 조회에 성공했습니다.", payload));
 	}
 
+  // 일간 조회 (관리자용)
+  @GetMapping("/daily/{userId}")
+  public ResponseEntity<ApiResponse<DailyPayload>> findDailyReportsByUserId(
+    @PathVariable Long userId,
+    @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
+    Authentication authentication
+  ) {
+    String role = userService.findByEmail(authentication.getName()).getRole();
+    if (!role.equals("ADMIN")) {
+      throw new UnauthorizedException("Unauthorized: 관리자 권한이 필요합니다.");
+    }
+    List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, date, date);
+    return ResponseEntity.ok(ApiResponse.success("일간 Report 조회에 성공했습니다.", new DailyPayload(reports)));
+  }
+
 	// 일간 조회 ?date=yyyy-MM-dd
 	@GetMapping("/daily")
 	public ResponseEntity<ApiResponse<DailyPayload>> findDailyReports(
 		@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
 		Authentication authentication
 	) {
-		Long userId = getCurrentUserId(authentication);
+		Long userId = authService.getCurrentUserId(authentication);
 
 		List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, date, date);
 		return ResponseEntity.ok(ApiResponse.success("일간 Report 조회에 성공했습니다.", new DailyPayload(reports)));
@@ -76,7 +114,7 @@ public class ReportController {
 		@PathVariable Long id,
 		Authentication authentication
 	) {
-		getCurrentUserId(authentication); // 필요 시 소유자 검증은 서비스에서 수행
+		authService.getCurrentUserId(authentication); // 필요 시 소유자 검증은 서비스에서 수행
 		ReportResponseDto report = reportService.findById(id);
 		return ResponseEntity.ok(ApiResponse.success("Report 조회에 성공했습니다.", report));
 	}
@@ -89,7 +127,7 @@ public class ReportController {
 		@Valid @RequestBody ReportUpdateDto dto,
 		Authentication authentication
 	) {
-		Long userId = getCurrentUserId(authentication);
+		Long userId = authService.getCurrentUserId(authentication);
 		ReportResponseDto updated = reportService.updateReport(id, userId, dto);
 		return ResponseEntity.ok(ApiResponse.success("Report가 성공적으로 수정되었습니다.", updated));
 	}
@@ -100,20 +138,9 @@ public class ReportController {
 		@PathVariable Long id,
 		Authentication authentication
 	) {
-		Long userId = getCurrentUserId(authentication);
+		Long userId = authService.getCurrentUserId(authentication);
 		reportService.deleteReport(id, userId);
 		return ResponseEntity.ok(ApiResponse.success("Report가 성공적으로 삭제되었습니다.", null));
-	}
-
-	private Long getCurrentUserId(Authentication authentication) {
-    if (authentication == null) {
-      throw new UnauthorizedException("Unauthorized");
-  }
-		String email = authentication.getName(); // CustomUserDetailsService에서 username=email로 설정
-    System.out.println("email: " + email);
-		User user = userRepository.findByEmail(email)
-			.orElseThrow(() -> new RuntimeException("User not found"));
-		return user.getUserId();
 	}
 
 	// 내부 응답 payload (주간/일간)
