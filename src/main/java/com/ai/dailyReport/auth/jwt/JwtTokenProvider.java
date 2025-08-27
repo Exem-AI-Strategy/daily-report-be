@@ -5,8 +5,6 @@ import com.ai.dailyReport.config.JwtConfig;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -23,25 +21,13 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
     }
     
-    public String generateToken(Authentication authentication) {
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtConfig.getExpiration());
-        
-        return Jwts.builder()
-            .setSubject(userDetails.getUsername())
-            .setIssuedAt(now)
-            .setExpiration(expiryDate)
-            .signWith(getSigningKey())
-            .compact();
-    }
-    
-    public String generateToken(String email) {
+    public String generateToken(String email, String role) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtConfig.getExpiration());
         
         return Jwts.builder()
             .setSubject(email)
+            .claim("role", role)
             .setIssuedAt(now)
             .setExpiration(expiryDate)
             .signWith(getSigningKey())
@@ -56,6 +42,15 @@ public class JwtTokenProvider {
             .getBody();
         
         return claims.getSubject();
+    }
+    
+    public String getRoleFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+            .setSigningKey(getSigningKey())
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
+        return claims.get("role", String.class);
     }
     
     public boolean validateToken(String token) {
