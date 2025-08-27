@@ -13,17 +13,13 @@ public class UserResponseDto {
     private String name;
     private String email;
     private String role;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
     
     public static UserResponseDto from(User user) {
-        return UserResponseDto.builder()
+        return UserResponseDto.builder()  
             .userId(user.getUserId())
             .name(user.getName())
             .email(user.getEmail())
             .role(user.getRole())
-            .createdAt(user.getCreatedAt())
-            .updatedAt(user.getUpdatedAt())
             .build();
     }
 }
