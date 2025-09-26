@@ -33,7 +33,7 @@ spring:
 # JWT 설정
 jwt:
   secret: ${JWT_SECRET} # 환경변수로 분리
-  expiration: 86400000 # 24시간 (밀리초)
+  expiration: 31536000000 # 1년 (365일 * 24시간 * 60분 * 60초 * 1000밀리초)
 
 # 로깅 설정
 logging:
