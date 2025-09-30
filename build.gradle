@@ -10,9 +10,10 @@ description = 'DailyReport project for Spring Boot'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(21)
+		languageVersion = JavaLanguageVersion.of(17)
 	}
 }
+tasks.withType(JavaCompile).configureEach { options.release = 17 }
 
 configurations {
 	compileOnly {
