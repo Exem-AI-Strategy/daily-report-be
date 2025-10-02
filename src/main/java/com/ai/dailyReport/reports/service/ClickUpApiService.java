@@ -20,7 +20,7 @@ public class ClickUpApiService {
     private final ObjectMapper objectMapper;
     
     private static final String CLICKUP_API_BASE_URL = "https://api.clickup.com/api/v2";
-    private static final String DEFAULT_CLICKUP_API_TOKEN = "pk_288766577_XT482X09ML6NWAW6I0O987LQSO8QMTZJ";
+    private static final String DEFAULT_CLICKUP_API_TOKEN = "pk_288766577_TGJV8AOX6PDQN9JKEFTPZBFWRPDRY6LW";
     
     public void processClickUpLink(String link, String clickUpToken) {
         try {
