@@ -35,7 +35,7 @@ public class ReportService {
         
         // ClickUp 링크 처리
         if (createDto.getLink() != null && !createDto.getLink().isEmpty()) {
-            clickUpApiService.processClickUpLink(createDto.getLink());
+            clickUpApiService.processClickUpLink(createDto.getLink(), user.getClickUpToken());
         }
             
         Report report = Report.builder()
@@ -104,7 +104,7 @@ public class ReportService {
         
         // ClickUp 링크 처리 (링크가 변경된 경우)
         if (updateDto.getLink() != null && !updateDto.getLink().equals(report.getLink())) {
-            clickUpApiService.processClickUpLink(updateDto.getLink());
+            clickUpApiService.processClickUpLink(updateDto.getLink(), report.getUser().getClickUpToken());
         }
         
         if (updateDto.getTitle() != null) {
@@ -147,7 +147,7 @@ public class ReportService {
         
         // 링크가 있으면 ClickUp API 호출
         if (report.getLink() != null && !report.getLink().isEmpty()) {
-            clickUpTask = clickUpApiService.getClickUpTaskData(report.getLink());
+            clickUpTask = clickUpApiService.getClickUpTaskData(report.getLink(), report.getUser().getClickUpToken());
         }
         
         // ClickUp 데이터와 함께 ReportResponseDto 생성

@@ -13,6 +13,7 @@ public class UserResponseDto {
     private String name;
     private String email;
     private String role;
+    private String clickUpToken;
     
     public static UserResponseDto from(User user) {
         return UserResponseDto.builder()  
@@ -20,6 +21,7 @@ public class UserResponseDto {
             .name(user.getName())
             .email(user.getEmail())
             .role(user.getRole())
+            .clickUpToken(user.getClickUpToken())
             .build();
     }
 }

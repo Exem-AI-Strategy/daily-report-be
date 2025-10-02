@@ -20,9 +20,9 @@ public class ClickUpApiService {
     private final ObjectMapper objectMapper;
     
     private static final String CLICKUP_API_BASE_URL = "https://api.clickup.com/api/v2";
-    private static final String CLICKUP_API_TOKEN = "pk_288766577_XT482X09ML6NWAW6I0O987LQSO8QMTZJ";
+    private static final String DEFAULT_CLICKUP_API_TOKEN = "pk_288766577_XT482X09ML6NWAW6I0O987LQSO8QMTZJ";
     
-    public void processClickUpLink(String link) {
+    public void processClickUpLink(String link, String clickUpToken) {
         try {
             // 1. 링크에서 task_id와 team_id 파싱
             String[] linkParts = link.split("/");
@@ -52,7 +52,8 @@ public class ClickUpApiService {
             }
             
             HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", CLICKUP_API_TOKEN);
+            String token = clickUpToken != null && !clickUpToken.isEmpty() ? clickUpToken : DEFAULT_CLICKUP_API_TOKEN;
+            headers.set("Authorization", token);
             headers.set("accept", "application/json");
             
             HttpEntity<String> entity = new HttpEntity<>(headers);
@@ -71,7 +72,7 @@ public class ClickUpApiService {
     }
     
     // ClickUp API 호출하여 데이터를 파싱하여 반환하는 메서드
-    public ClickUpTaskDto getClickUpTaskData(String link) {
+    public ClickUpTaskDto getClickUpTaskData(String link, String clickUpToken) {
         try {
             // 1. 링크에서 task_id와 team_id 파싱
             String[] linkParts = link.split("/");
@@ -101,7 +102,8 @@ public class ClickUpApiService {
             }
             
             HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", CLICKUP_API_TOKEN);
+            String token = clickUpToken != null && !clickUpToken.isEmpty() ? clickUpToken : DEFAULT_CLICKUP_API_TOKEN;
+            headers.set("Authorization", token);
             headers.set("accept", "application/json");
             
             HttpEntity<String> entity = new HttpEntity<>(headers);
