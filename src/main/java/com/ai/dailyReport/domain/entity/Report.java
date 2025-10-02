@@ -36,6 +36,9 @@ public class Report {
     @Column(name = "content", columnDefinition = "TEXT")
     private String content;
     
+    @Column(name = "link", length = 500)
+    private String link;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -58,11 +61,12 @@ public class Report {
     }
 
     @Builder
-    public Report(User user, LocalDateTime reportStartDate, LocalDateTime reportEndDate, String title, String content) {
+    public Report(User user, LocalDateTime reportStartDate, LocalDateTime reportEndDate, String title, String content, String link) {
         this.user = user;
         this.reportStartDate = reportStartDate;
         this.reportEndDate = reportEndDate;
         this.title = title;
         this.content = content;
+        this.link = link;
     }
 }

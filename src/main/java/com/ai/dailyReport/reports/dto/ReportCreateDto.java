@@ -22,4 +22,6 @@ public class ReportCreateDto {
     private String title;
     
     private String content;
+    
+    private String link;
 }

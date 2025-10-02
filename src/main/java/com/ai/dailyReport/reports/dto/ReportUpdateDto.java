@@ -18,6 +18,7 @@ public class ReportUpdateDto {
     private String title;
     
     private String content;
+    private String link;
     private Long userId;
     private Long reportId;
 }

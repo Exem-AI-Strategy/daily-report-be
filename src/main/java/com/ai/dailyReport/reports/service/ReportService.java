@@ -7,6 +7,7 @@ import com.ai.dailyReport.domain.repository.UserRepository;
 import com.ai.dailyReport.reports.dto.ReportCreateDto;
 import com.ai.dailyReport.reports.dto.ReportUpdateDto;
 import com.ai.dailyReport.reports.dto.ReportResponseDto;
+import com.ai.dailyReport.reports.service.ClickUpApiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +24,18 @@ public class ReportService {
     
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
+    private final ClickUpApiService clickUpApiService;
     
     // 리포트 생성
     @Transactional
     public ReportResponseDto createReport(Long userId, ReportCreateDto createDto) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // ClickUp 링크 처리
+        if (createDto.getLink() != null && !createDto.getLink().isEmpty()) {
+            clickUpApiService.processClickUpLink(createDto.getLink());
+        }
             
         Report report = Report.builder()
             .user(user)
@@ -36,6 +43,7 @@ public class ReportService {
             .reportEndDate(createDto.getReportEndDate())
             .title(createDto.getTitle())
             .content(createDto.getContent())
+            .link(createDto.getLink())
             .build();
             
         Report savedReport = reportRepository.save(report);
@@ -91,11 +99,19 @@ public class ReportService {
             throw new RuntimeException("You can only update your own reports");
         }
         
+        // ClickUp 링크 처리 (링크가 변경된 경우)
+        if (updateDto.getLink() != null && !updateDto.getLink().equals(report.getLink())) {
+            clickUpApiService.processClickUpLink(updateDto.getLink());
+        }
+        
         if (updateDto.getTitle() != null) {
             report.setTitle(updateDto.getTitle());
         }
         if (updateDto.getContent() != null) {
             report.setContent(updateDto.getContent());
+        }
+        if (updateDto.getLink() != null) {
+            report.setLink(updateDto.getLink());
         }
         if (updateDto.getReportStartDate() != null) {
             report.setReportStartDate(updateDto.getReportStartDate());

@@ -16,6 +16,7 @@ public class ReportResponseDto {
     private LocalDateTime reportEndDate;
     private String title;
     private String content;
+    private String link;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     
@@ -28,6 +29,7 @@ public class ReportResponseDto {
             .reportEndDate(report.getReportEndDate())
             .title(report.getTitle())
             .content(report.getContent())
+            .link(report.getLink())
             .createdAt(report.getCreatedAt())
             .updatedAt(report.getUpdatedAt())
             .build();
