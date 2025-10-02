@@ -17,6 +17,7 @@ public class ReportResponseDto {
     private String title;
     private String content;
     private String link;
+    private ClickUpTaskDto clickUpTask;  // ClickUp 데이터 추가
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     
@@ -30,6 +31,24 @@ public class ReportResponseDto {
             .title(report.getTitle())
             .content(report.getContent())
             .link(report.getLink())
+            .clickUpTask(null)  // 기본값은 null, ReportService에서 설정
+            .createdAt(report.getCreatedAt())
+            .updatedAt(report.getUpdatedAt())
+            .build();
+    }
+    
+    // ClickUp 데이터와 함께 생성하는 메서드
+    public static ReportResponseDto from(Report report, ClickUpTaskDto clickUpTask) {
+        return ReportResponseDto.builder()
+            .reportId(report.getReportId())
+            .userId(report.getUser().getUserId())
+            .userName(report.getUser().getName())
+            .reportStartDate(report.getReportStartDate())
+            .reportEndDate(report.getReportEndDate())
+            .title(report.getTitle())
+            .content(report.getContent())
+            .link(report.getLink())
+            .clickUpTask(clickUpTask)
             .createdAt(report.getCreatedAt())
             .updatedAt(report.getUpdatedAt())
             .build();
