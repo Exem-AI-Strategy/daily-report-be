@@ -26,19 +26,30 @@ public class ClickUpApiService {
         try {
             // 1. 링크에서 task_id와 team_id 파싱
             String[] linkParts = link.split("/");
-            if (linkParts.length < 2) {
+            if (linkParts.length < 5) {
                 log.error("Invalid link format: {}", link);
                 return;
             }
             
             String taskId = linkParts[linkParts.length - 1];  // 마지막 부분
-            String teamId = linkParts[linkParts.length - 2];  // 뒤에서 두번째
             
-            log.info("Parsed task_id: {}, team_id: {}", taskId, teamId);
-            
-            // 2. ClickUp API 호출
-            String apiUrl = String.format("%s/task/%s?custom_task_ids=true&team_id=%s&include_subtasks=false&include_markdown_description=false",
-                    CLICKUP_API_BASE_URL, taskId, teamId);
+            // 2. 링크 형태에 따라 API URL 구성
+            String apiUrl;
+            if (linkParts.length == 5) {
+                // 첫 번째 형태: /t/task_id
+                apiUrl = String.format("%s/task/%s?include_subtasks=false&include_markdown_description=false",
+                        CLICKUP_API_BASE_URL, taskId);
+                log.info("Parsed task_id: {} (no team_id)", taskId);
+            } else if (linkParts.length == 6) {
+                // 두 번째 형태: /t/team_id/task_id
+                String teamId = linkParts[linkParts.length - 2];  // 뒤에서 두번째
+                apiUrl = String.format("%s/task/%s?custom_task_ids=true&team_id=%s&include_subtasks=false&include_markdown_description=false",
+                        CLICKUP_API_BASE_URL, taskId, teamId);
+                log.info("Parsed task_id: {}, team_id: {}", taskId, teamId);
+            } else {
+                log.error("Invalid link format: {}", link);
+                return;
+            }
             
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", CLICKUP_API_TOKEN);
@@ -64,19 +75,30 @@ public class ClickUpApiService {
         try {
             // 1. 링크에서 task_id와 team_id 파싱
             String[] linkParts = link.split("/");
-            if (linkParts.length < 2) {
+            if (linkParts.length < 5) {
                 log.error("Invalid link format: {}", link);
-                return null;
+                return ClickUpTaskDto.createError("INVALID_LINK", "잘못된 링크 형식입니다.");
             }
             
             String taskId = linkParts[linkParts.length - 1];  // 마지막 부분
-            String teamId = linkParts[linkParts.length - 2];  // 뒤에서 두번째
             
-            log.info("Parsed task_id: {}, team_id: {}", taskId, teamId);
-            
-            // 2. ClickUp API 호출
-            String apiUrl = String.format("%s/task/%s?custom_task_ids=true&team_id=%s&include_subtasks=false&include_markdown_description=false",
-                    CLICKUP_API_BASE_URL, taskId, teamId);
+            // 2. 링크 형태에 따라 API URL 구성
+            String apiUrl;
+            if (linkParts.length == 5) {
+                // 첫 번째 형태: /t/task_id
+                apiUrl = String.format("%s/task/%s?include_subtasks=false&include_markdown_description=false",
+                        CLICKUP_API_BASE_URL, taskId);
+                log.info("Parsed task_id: {} (no team_id)", taskId);
+            } else if (linkParts.length == 6) {
+                // 두 번째 형태: /t/team_id/task_id
+                String teamId = linkParts[linkParts.length - 2];  // 뒤에서 두번째
+                apiUrl = String.format("%s/task/%s?custom_task_ids=true&team_id=%s&include_subtasks=false&include_markdown_description=false",
+                        CLICKUP_API_BASE_URL, taskId, teamId);
+                log.info("Parsed task_id: {}, team_id: {}", taskId, teamId);
+            } else {
+                log.error("Invalid link format: {}", link);
+                return ClickUpTaskDto.createError("INVALID_LINK", "지원하지 않는 링크 형식입니다.");
+            }
             
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", CLICKUP_API_TOKEN);
