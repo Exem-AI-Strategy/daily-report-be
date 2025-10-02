@@ -32,6 +32,9 @@ public class User {
     @Column(name = "role", length = 10, nullable = false)
     private String role = "USER"; // 기본값 설정
     
+    @Column(name = "click_up_token", length = 200)
+    private String clickUpToken;
+    
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -53,10 +56,11 @@ public class User {
     }
 
     @Builder
-    public User(String name, String email, String password, String role) {
+    public User(String name, String email, String password, String role, String clickUpToken) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.role = role == null ? ROLE_USER : role;
+        this.clickUpToken = clickUpToken;
     }
 }

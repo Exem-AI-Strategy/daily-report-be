@@ -7,6 +7,8 @@ import com.ai.dailyReport.domain.repository.UserRepository;
 import com.ai.dailyReport.reports.dto.ReportCreateDto;
 import com.ai.dailyReport.reports.dto.ReportUpdateDto;
 import com.ai.dailyReport.reports.dto.ReportResponseDto;
+import com.ai.dailyReport.reports.dto.ClickUpTaskDto;
+import com.ai.dailyReport.reports.service.ClickUpApiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +25,18 @@ public class ReportService {
     
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
+    private final ClickUpApiService clickUpApiService;
     
     // 리포트 생성
     @Transactional
     public ReportResponseDto createReport(Long userId, ReportCreateDto createDto) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // ClickUp 링크 처리
+        if (createDto.getLink() != null && !createDto.getLink().isEmpty()) {
+            clickUpApiService.processClickUpLink(createDto.getLink(), user.getClickUpToken());
+        }
             
         Report report = Report.builder()
             .user(user)
@@ -36,6 +44,7 @@ public class ReportService {
             .reportEndDate(createDto.getReportEndDate())
             .title(createDto.getTitle())
             .content(createDto.getContent())
+            .link(createDto.getLink())
             .build();
             
         Report savedReport = reportRepository.save(report);
@@ -46,7 +55,9 @@ public class ReportService {
     public ReportResponseDto findById(Long reportId) {
         Report report = reportRepository.findById(reportId)
             .orElseThrow(() -> new RuntimeException("Report not found"));
-        return ReportResponseDto.from(report);
+        
+        // ClickUp 데이터 포함하여 반환
+        return createReportResponseWithClickUpData(report);
     }
     
     // 사용자의 모든 리포트 조회
@@ -55,7 +66,7 @@ public class ReportService {
             .orElseThrow(() -> new RuntimeException("User not found"));
             
         return reportRepository.findByUserOrderByReportStartDateDesc(user).stream()
-            .map(ReportResponseDto::from)
+            .map(this::createReportResponseWithClickUpData)
             .collect(Collectors.toList());
     }
     
@@ -69,14 +80,14 @@ public class ReportService {
             .orElseThrow(() -> new RuntimeException("User not found"));
         
         return reportRepository.findByUserAndReportStartDateBetween(user, startDate.atStartOfDay(), endDate.atTime(LocalTime.MAX)).stream()
-            .map(ReportResponseDto::from)
+            .map(this::createReportResponseWithClickUpData)
             .collect(Collectors.toList());
     }
     
     // 모든 리포트 조회 (관리자용)
     public List<ReportResponseDto> findAllReports() {
         return reportRepository.findAll().stream()
-            .map(ReportResponseDto::from)
+            .map(this::createReportResponseWithClickUpData)
             .collect(Collectors.toList());
     }
     
@@ -91,11 +102,19 @@ public class ReportService {
             throw new RuntimeException("You can only update your own reports");
         }
         
+        // ClickUp 링크 처리 (링크가 변경된 경우)
+        if (updateDto.getLink() != null && !updateDto.getLink().equals(report.getLink())) {
+            clickUpApiService.processClickUpLink(updateDto.getLink(), report.getUser().getClickUpToken());
+        }
+        
         if (updateDto.getTitle() != null) {
             report.setTitle(updateDto.getTitle());
         }
         if (updateDto.getContent() != null) {
             report.setContent(updateDto.getContent());
+        }
+        if (updateDto.getLink() != null) {
+            report.setLink(updateDto.getLink());
         }
         if (updateDto.getReportStartDate() != null) {
             report.setReportStartDate(updateDto.getReportStartDate());
@@ -120,5 +139,18 @@ public class ReportService {
         }
         
         reportRepository.deleteById(reportId);
+    }
+    
+    // ClickUp 데이터를 포함하여 ReportResponseDto를 생성하는 헬퍼 메서드
+    private ReportResponseDto createReportResponseWithClickUpData(Report report) {
+        ClickUpTaskDto clickUpTask = null;
+        
+        // 링크가 있으면 ClickUp API 호출
+        if (report.getLink() != null && !report.getLink().isEmpty()) {
+            clickUpTask = clickUpApiService.getClickUpTaskData(report.getLink(), report.getUser().getClickUpToken());
+        }
+        
+        // ClickUp 데이터와 함께 ReportResponseDto 생성
+        return ReportResponseDto.from(report, clickUpTask);
     }
 }
