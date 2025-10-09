@@ -1,7 +1,6 @@
 package com.ai.dailyReport.reports.controller;
 
 
-import com.ai.dailyReport.auth.controller.AuthController;
 import com.ai.dailyReport.auth.service.AuthService;
 import com.ai.dailyReport.common.exception.UnauthorizedException;
 import com.ai.dailyReport.common.response.ApiResponse;
@@ -42,6 +41,7 @@ public class ReportController {
 		String email = authentication.getName();
     Long userId = userService.findByEmail(email).getUserId();
 
+		System.out.println("dto.mentionedUserIds=" + dto.getMentionedUserIds());
 		ReportResponseDto created = reportService.createReport(userId, dto);
 		return ResponseEntity
 			.status(HttpStatus.CREATED)
@@ -128,6 +128,7 @@ public class ReportController {
 		Authentication authentication
 	) {
 		Long userId = authService.getCurrentUserId(authentication);
+		System.out.println("update.mentionedUserIds=" + dto.getMentionedUserIds());
 		ReportResponseDto updated = reportService.updateReport(id, userId, dto);
 		return ResponseEntity.ok(ApiResponse.success("Report가 성공적으로 수정되었습니다.", updated));
 	}
