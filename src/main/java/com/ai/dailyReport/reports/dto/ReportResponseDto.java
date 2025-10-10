@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -20,6 +21,7 @@ public class ReportResponseDto {
     private ClickUpTaskDto clickUpTask;  // ClickUp 데이터 추가
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<MentionDto> mentions;
     
     public static ReportResponseDto from(Report report) {
         return ReportResponseDto.builder()
@@ -34,6 +36,7 @@ public class ReportResponseDto {
             .clickUpTask(null)  // 기본값은 null, ReportService에서 설정
             .createdAt(report.getCreatedAt())
             .updatedAt(report.getUpdatedAt())
+            .mentions(null)
             .build();
     }
     
@@ -51,6 +54,24 @@ public class ReportResponseDto {
             .clickUpTask(clickUpTask)
             .createdAt(report.getCreatedAt())
             .updatedAt(report.getUpdatedAt())
+            .mentions(null)
+            .build();
+    }
+
+    public static ReportResponseDto from(Report report, ClickUpTaskDto clickUpTask, List<MentionDto> mentions) {
+        return ReportResponseDto.builder()
+            .reportId(report.getReportId())
+            .userId(report.getUser().getUserId())
+            .userName(report.getUser().getName())
+            .reportStartDate(report.getReportStartDate())
+            .reportEndDate(report.getReportEndDate())
+            .title(report.getTitle())
+            .content(report.getContent())
+            .link(report.getLink())
+            .clickUpTask(clickUpTask)
+            .createdAt(report.getCreatedAt())
+            .updatedAt(report.getUpdatedAt())
+            .mentions(mentions)
             .build();
     }
 }

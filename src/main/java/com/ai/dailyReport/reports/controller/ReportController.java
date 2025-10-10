@@ -1,7 +1,6 @@
 package com.ai.dailyReport.reports.controller;
 
 
-import com.ai.dailyReport.auth.controller.AuthController;
 import com.ai.dailyReport.auth.service.AuthService;
 import com.ai.dailyReport.common.exception.UnauthorizedException;
 import com.ai.dailyReport.common.response.ApiResponse;
@@ -42,6 +41,7 @@ public class ReportController {
 		String email = authentication.getName();
     Long userId = userService.findByEmail(email).getUserId();
 
+		System.out.println("dto.mentionedUserIds=" + dto.getMentionedUserIds());
 		ReportResponseDto created = reportService.createReport(userId, dto);
 		return ResponseEntity
 			.status(HttpStatus.CREATED)
@@ -57,10 +57,6 @@ public class ReportController {
     Authentication authentication
   )
   {
-    String role = userService.findByEmail(authentication.getName()).getRole();
-    if (!role.equals("ADMIN")) {
-      throw new UnauthorizedException("Unauthorized: 관리자 권한이 필요합니다.");
-    }
     List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, startDate, endDate);
     WeeklyPayload payload = new WeeklyPayload(startDate, endDate, reports);
     return ResponseEntity.ok(ApiResponse.success("주간 Report 조회에 성공했습니다.", payload));
@@ -88,10 +84,6 @@ public class ReportController {
     @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
     Authentication authentication
   ) {
-    String role = userService.findByEmail(authentication.getName()).getRole();
-    if (!role.equals("ADMIN")) {
-      throw new UnauthorizedException("Unauthorized: 관리자 권한이 필요합니다.");
-    }
     List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, date, date);
     return ResponseEntity.ok(ApiResponse.success("일간 Report 조회에 성공했습니다.", new DailyPayload(reports)));
   }
@@ -114,8 +106,8 @@ public class ReportController {
 		@PathVariable Long id,
 		Authentication authentication
 	) {
-		authService.getCurrentUserId(authentication); // 필요 시 소유자 검증은 서비스에서 수행
-		ReportResponseDto report = reportService.findById(id);
+		Long userId = authService.getCurrentUserId(authentication);
+		ReportResponseDto report = reportService.findById(id, userId);
 		return ResponseEntity.ok(ApiResponse.success("Report 조회에 성공했습니다.", report));
 	}
 
@@ -128,6 +120,7 @@ public class ReportController {
 		Authentication authentication
 	) {
 		Long userId = authService.getCurrentUserId(authentication);
+		System.out.println("update.mentionedUserIds=" + dto.getMentionedUserIds());
 		ReportResponseDto updated = reportService.updateReport(id, userId, dto);
 		return ResponseEntity.ok(ApiResponse.success("Report가 성공적으로 수정되었습니다.", updated));
 	}

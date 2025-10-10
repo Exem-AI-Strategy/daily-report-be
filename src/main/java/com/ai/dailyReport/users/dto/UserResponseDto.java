@@ -4,7 +4,6 @@ import com.ai.dailyReport.domain.entity.User;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
 
 @Data
 @Builder
@@ -14,6 +13,7 @@ public class UserResponseDto {
     private String email;
     private String role;
     private String clickUpToken;
+    private String team;
     
     public static UserResponseDto from(User user) {
         return UserResponseDto.builder()  
@@ -22,6 +22,7 @@ public class UserResponseDto {
             .email(user.getEmail())
             .role(user.getRole())
             .clickUpToken(user.getClickUpToken())
+            .team(user.getTeam())
             .build();
     }
 }

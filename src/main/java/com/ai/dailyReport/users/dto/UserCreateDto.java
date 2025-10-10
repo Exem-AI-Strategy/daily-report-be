@@ -20,4 +20,6 @@ public class UserCreateDto {
     private String password;
     
     private String role = "USER"; // 기본값
+    
+    private String team;
 }

@@ -32,6 +32,7 @@ public class UserService {
             .email(createDto.getEmail())
             .password(passwordEncoder.encode(createDto.getPassword()))
             .role(createDto.getRole())
+            .team(createDto.getTeam())
             .build();
             
         User savedUser = userRepository.save(user);
@@ -73,6 +74,9 @@ public class UserService {
         }
         if (updateDto.getRole() != null) {
             user.setRole(updateDto.getRole());
+        }
+        if (updateDto.getTeam() != null) {
+            user.setTeam(updateDto.getTeam());
         }
         
         User updatedUser = userRepository.save(user);

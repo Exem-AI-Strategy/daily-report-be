@@ -1,30 +1,39 @@
 package com.ai.dailyReport.reports.service;
 
 import com.ai.dailyReport.domain.entity.Report;
+import com.ai.dailyReport.domain.entity.ReportMention;
 import com.ai.dailyReport.domain.entity.User;
 import com.ai.dailyReport.domain.repository.ReportRepository;
+import com.ai.dailyReport.domain.repository.ReportMentionRepository;
 import com.ai.dailyReport.domain.repository.UserRepository;
 import com.ai.dailyReport.reports.dto.ReportCreateDto;
 import com.ai.dailyReport.reports.dto.ReportUpdateDto;
 import com.ai.dailyReport.reports.dto.ReportResponseDto;
 import com.ai.dailyReport.reports.dto.ClickUpTaskDto;
-import com.ai.dailyReport.reports.service.ClickUpApiService;
+import com.ai.dailyReport.reports.dto.MentionDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ReportService {
     
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
+    private final ReportMentionRepository reportMentionRepository;
     private final ClickUpApiService clickUpApiService;
     
     // 리포트 생성
@@ -48,7 +57,30 @@ public class ReportService {
             .build();
             
         Report savedReport = reportRepository.save(report);
-        return ReportResponseDto.from(savedReport);
+
+        if (createDto.getMentionedUserIds() == null) {
+            log.info("No mentions provided in create (null)");
+        } else if (createDto.getMentionedUserIds().isEmpty()) {
+            log.info("No mentions provided in create (empty)");
+        } else {
+            log.info("Creating mentions for reportId={}, mentionedUserIds={}", savedReport.getReportId(), createDto.getMentionedUserIds());
+            Set<Long> uniqueUserIds = new HashSet<>(createDto.getMentionedUserIds());
+            List<User> mentionedUsers = userRepository.findAllById(uniqueUserIds);
+            log.info("Found {} users to mention", mentionedUsers.size());
+            List<ReportMention> mentionsToSave = mentionedUsers.stream()
+                .filter(mentionedUser -> !reportMentionRepository.existsByReportAndMentionedUser(savedReport, mentionedUser))
+                .map(mentionedUser -> ReportMention.builder()
+                    .report(savedReport)
+                    .mentionedUser(mentionedUser)
+                    .build())
+                .collect(Collectors.toList());
+            if (!mentionsToSave.isEmpty()) {
+                log.info("Saving {} mentions", mentionsToSave.size());
+                reportMentionRepository.saveAll(mentionsToSave);
+            }
+        }
+
+        return createReportResponseWithClickUpData(savedReport, userId);
     }
     
     // 리포트 조회 (ID)
@@ -57,7 +89,14 @@ public class ReportService {
             .orElseThrow(() -> new RuntimeException("Report not found"));
         
         // ClickUp 데이터 포함하여 반환
-        return createReportResponseWithClickUpData(report);
+        return createReportResponseWithClickUpData(report, null);
+    }
+
+    // 뷰어 기준으로 응답 구성 (mentioner 포함 판단)
+    public ReportResponseDto findById(Long reportId, Long viewerUserId) {
+        Report report = reportRepository.findById(reportId)
+            .orElseThrow(() -> new RuntimeException("Report not found"));
+        return createReportResponseWithClickUpData(report, viewerUserId);
     }
     
     // 사용자의 모든 리포트 조회
@@ -66,7 +105,7 @@ public class ReportService {
             .orElseThrow(() -> new RuntimeException("User not found"));
             
         return reportRepository.findByUserOrderByReportStartDateDesc(user).stream()
-            .map(this::createReportResponseWithClickUpData)
+            .map(r -> createReportResponseWithClickUpData(r, userId))
             .collect(Collectors.toList());
     }
     
@@ -79,15 +118,20 @@ public class ReportService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        return reportRepository.findByUserAndReportStartDateBetween(user, startDate.atStartOfDay(), endDate.atTime(LocalTime.MAX)).stream()
-            .map(this::createReportResponseWithClickUpData)
+        return reportRepository.findVisibleReports(
+                user,
+                startDate.atStartOfDay(),
+                endDate.atTime(LocalTime.MAX),
+                Sort.by(Sort.Direction.ASC, "reportStartDate")
+        ).stream()
+            .map(r -> createReportResponseWithClickUpData(r, userId))
             .collect(Collectors.toList());
     }
     
     // 모든 리포트 조회 (관리자용)
     public List<ReportResponseDto> findAllReports() {
         return reportRepository.findAll().stream()
-            .map(this::createReportResponseWithClickUpData)
+            .map(r -> createReportResponseWithClickUpData(r, null))
             .collect(Collectors.toList());
     }
     
@@ -123,8 +167,45 @@ public class ReportService {
             report.setReportEndDate(updateDto.getReportEndDate());
         }
         
+        if (updateDto.getMentionedUserIds() == null) {
+            log.info("No mentions provided in update (null) - skipping sync");
+        } else {
+            log.info("Syncing mentions for reportId={}, mentionedUserIds={}", report.getReportId(), updateDto.getMentionedUserIds());
+            List<ReportMention> existingMentions = reportMentionRepository.findByReport(report);
+            Set<Long> existingUserIds = existingMentions.stream()
+                .map(m -> m.getMentionedUser().getUserId())
+                .collect(Collectors.toSet());
+
+            Set<Long> newUserIds = new HashSet<>(updateDto.getMentionedUserIds());
+
+            Set<Long> toAdd = new HashSet<>(newUserIds);
+            toAdd.removeAll(existingUserIds);
+
+            Set<Long> toRemove = new HashSet<>(existingUserIds);
+            toRemove.removeAll(newUserIds);
+
+            if (!toRemove.isEmpty()) {
+                List<User> usersToRemove = userRepository.findAllById(toRemove);
+                for (User u : usersToRemove) {
+                    reportMentionRepository.deleteByReportAndMentionedUser(report, u);
+                }
+                log.info("Removed {} mentions", toRemove.size());
+            }
+
+            if (!toAdd.isEmpty()) {
+                List<User> usersToAdd = userRepository.findAllById(toAdd);
+                List<ReportMention> mentionsToAdd = usersToAdd.stream()
+                    .map(u -> ReportMention.builder().report(report).mentionedUser(u).build())
+                    .collect(Collectors.toList());
+                if (!mentionsToAdd.isEmpty()) {
+                    reportMentionRepository.saveAll(mentionsToAdd);
+                }
+                log.info("Added {} mentions", toAdd.size());
+            }
+        }
+
         Report updatedReport = reportRepository.save(report);
-        return ReportResponseDto.from(updatedReport);
+        return createReportResponseWithClickUpData(updatedReport, userId);
     }
     
     // 리포트 삭제
@@ -143,14 +224,48 @@ public class ReportService {
     
     // ClickUp 데이터를 포함하여 ReportResponseDto를 생성하는 헬퍼 메서드
     private ReportResponseDto createReportResponseWithClickUpData(Report report) {
+        return createReportResponseWithClickUpData(report, null);
+    }
+
+    private ReportResponseDto createReportResponseWithClickUpData(Report report, Long viewerUserId) {
         ClickUpTaskDto clickUpTask = null;
+        List<MentionDto> mentions = new ArrayList<>();
         
         // 링크가 있으면 ClickUp API 호출
         if (report.getLink() != null && !report.getLink().isEmpty()) {
             clickUpTask = clickUpApiService.getClickUpTaskData(report.getLink(), report.getUser().getClickUpToken());
         }
+
+        // 언급 목록 구성
+        List<ReportMention> mentionEntities = reportMentionRepository.findByReport(report);
+        boolean viewerIsMentioned = false;
+        boolean viewerIsAuthor = viewerUserId != null && report.getUser().getUserId().equals(viewerUserId);
+        if (mentionEntities != null && !mentionEntities.isEmpty()) {
+            for (ReportMention m : mentionEntities) {
+                mentions.add(MentionDto.from(m));
+                if (viewerUserId != null && m.getMentionedUser().getUserId().equals(viewerUserId)) {
+                    viewerIsMentioned = true;
+                }
+            }
+        }
+
+        // 뷰어가 멘션된 사용자이거나 작성자라면, 작성자도 mentions에 포함(표시용 isMentioner=true)
+        if (viewerUserId != null && (viewerIsMentioned || viewerIsAuthor)) {
+            MentionDto mentioner = MentionDto.builder()
+                .mentionId(null)
+                .userId(report.getUser().getUserId())
+                .userName(report.getUser().getName())
+                .createdAt(report.getCreatedAt())
+                .isMentioner(true)
+                .build();
+            // 중복 방지: 혹시 동일 userId가 이미 있다면 추가하지 않음
+            boolean exists = mentions.stream().anyMatch(md -> md.getUserId().equals(mentioner.getUserId()));
+            if (!exists) {
+                mentions.add(mentioner);
+            }
+        }
         
         // ClickUp 데이터와 함께 ReportResponseDto 생성
-        return ReportResponseDto.from(report, clickUpTask);
+        return ReportResponseDto.from(report, clickUpTask, mentions);
     }
 }

@@ -34,6 +34,9 @@ public class User {
     
     @Column(name = "click_up_token", length = 200)
     private String clickUpToken;
+
+    @Column(name = "team", length = 50)
+    private String team;
     
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -56,11 +59,12 @@ public class User {
     }
 
     @Builder
-    public User(String name, String email, String password, String role, String clickUpToken) {
+    public User(String name, String email, String password, String role, String clickUpToken, String team) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.role = role == null ? ROLE_USER : role;
         this.clickUpToken = clickUpToken;
+        this.team = team;
     }
 }
