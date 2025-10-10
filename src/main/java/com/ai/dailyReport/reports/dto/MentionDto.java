@@ -13,6 +13,7 @@ public class MentionDto {
     private Long userId;
     private String userName;
     private LocalDateTime createdAt;
+    private boolean isMentioner;
 
     public static MentionDto from(ReportMention mention) {
         return MentionDto.builder()
@@ -20,6 +21,7 @@ public class MentionDto {
             .userId(mention.getMentionedUser().getUserId())
             .userName(mention.getMentionedUser().getName())
             .createdAt(mention.getCreatedAt())
+            .isMentioner(false)
             .build();
     }
 }

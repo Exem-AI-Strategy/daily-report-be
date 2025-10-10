@@ -114,8 +114,8 @@ public class ReportController {
 		@PathVariable Long id,
 		Authentication authentication
 	) {
-		authService.getCurrentUserId(authentication); // 필요 시 소유자 검증은 서비스에서 수행
-		ReportResponseDto report = reportService.findById(id);
+		Long userId = authService.getCurrentUserId(authentication);
+		ReportResponseDto report = reportService.findById(id, userId);
 		return ResponseEntity.ok(ApiResponse.success("Report 조회에 성공했습니다.", report));
 	}
 
