@@ -42,14 +42,6 @@ public class UserController {
         @PathVariable Long userId,
         Authentication authentication
     ) {
-        String currentUserEmail = authentication.getName();
-        UserResponseDto currentUser = userService.findByEmail(currentUserEmail);
-        
-        // admin이거나 본인 정보 조회인 경우만 허용
-        if (!currentUser.getRole().equals("ADMIN") && !currentUser.getUserId().equals(userId)) {
-            throw new UnauthorizedException("Unauthorized: 다른 사용자 정보를 조회할 권한이 없습니다.");
-        }
-        
         UserResponseDto user = userService.findById(userId);
         return ResponseEntity.ok(user);
     }

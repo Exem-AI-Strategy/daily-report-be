@@ -57,10 +57,6 @@ public class ReportController {
     Authentication authentication
   )
   {
-    String role = userService.findByEmail(authentication.getName()).getRole();
-    if (!role.equals("ADMIN")) {
-      throw new UnauthorizedException("Unauthorized: 관리자 권한이 필요합니다.");
-    }
     List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, startDate, endDate);
     WeeklyPayload payload = new WeeklyPayload(startDate, endDate, reports);
     return ResponseEntity.ok(ApiResponse.success("주간 Report 조회에 성공했습니다.", payload));
@@ -88,10 +84,6 @@ public class ReportController {
     @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date,
     Authentication authentication
   ) {
-    String role = userService.findByEmail(authentication.getName()).getRole();
-    if (!role.equals("ADMIN")) {
-      throw new UnauthorizedException("Unauthorized: 관리자 권한이 필요합니다.");
-    }
     List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, date, date);
     return ResponseEntity.ok(ApiResponse.success("일간 Report 조회에 성공했습니다.", new DailyPayload(reports)));
   }
