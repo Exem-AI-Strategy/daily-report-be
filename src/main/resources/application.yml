@@ -39,6 +39,7 @@ jwt:
 logging:
   level:
     com.dailyreport.backend: DEBUG
+    com.ai.dailyReport: DEBUG
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
 

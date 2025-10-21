@@ -105,7 +105,8 @@ public class ReportService {
             .orElseThrow(() -> new RuntimeException("User not found"));
             
         return reportRepository.findByUserOrderByReportStartDateDesc(user).stream()
-            .map(r -> createReportResponseWithClickUpData(r, userId))
+            .map(r -> ReportResponseDto.from(r))
+            // .map(r -> createReportResponseWithClickUpData(r, userId))
             .collect(Collectors.toList());
     }
     
@@ -128,10 +129,29 @@ public class ReportService {
             .collect(Collectors.toList());
     }
     
+    // 날짜 범위로 리포트 조회 (ClickUp 호출 제외 - 주간 조회 전용)
+    public List<ReportResponseDto> findByUserIdAndDateRangeNoClickUp(
+        Long userId,
+        LocalDate startDate,
+        LocalDate endDate
+    ) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return reportRepository.findVisibleReports(
+                user,
+                startDate.atStartOfDay(),
+                endDate.atTime(LocalTime.MAX),
+                Sort.by(Sort.Direction.ASC, "reportStartDate")
+        ).stream()
+            .map(r -> createReportResponseWithoutClickUpData(r, userId))
+            .collect(Collectors.toList());
+    }
+
     // 모든 리포트 조회 (관리자용)
     public List<ReportResponseDto> findAllReports() {
         return reportRepository.findAll().stream()
-            .map(r -> createReportResponseWithClickUpData(r, null))
+            .map(r -> createReportResponseWithoutClickUpData(r, null))
             .collect(Collectors.toList());
     }
     
@@ -267,5 +287,40 @@ public class ReportService {
         
         // ClickUp 데이터와 함께 ReportResponseDto 생성
         return ReportResponseDto.from(report, clickUpTask, mentions);
+    }
+
+    // ClickUp 호출 없이 ReportResponseDto를 생성 (mentions 포함)
+    private ReportResponseDto createReportResponseWithoutClickUpData(Report report, Long viewerUserId) {
+        List<MentionDto> mentions = new ArrayList<>();
+
+        // 언급 목록 구성
+        List<ReportMention> mentionEntities = reportMentionRepository.findByReport(report);
+        boolean viewerIsMentioned = false;
+        boolean viewerIsAuthor = viewerUserId != null && report.getUser().getUserId().equals(viewerUserId);
+        if (mentionEntities != null && !mentionEntities.isEmpty()) {
+            for (ReportMention m : mentionEntities) {
+                mentions.add(MentionDto.from(m));
+                if (viewerUserId != null && m.getMentionedUser().getUserId().equals(viewerUserId)) {
+                    viewerIsMentioned = true;
+                }
+            }
+        }
+
+        // 뷰어가 멘션된 사용자이거나 작성자라면, 작성자도 mentions에 포함(표시용 isMentioner=true)
+        if (viewerUserId != null && (viewerIsMentioned || viewerIsAuthor)) {
+            MentionDto mentioner = MentionDto.builder()
+                .mentionId(null)
+                .userId(report.getUser().getUserId())
+                .userName(report.getUser().getName())
+                .createdAt(report.getCreatedAt())
+                .isMentioner(true)
+                .build();
+            boolean exists = mentions.stream().anyMatch(md -> md.getUserId().equals(mentioner.getUserId()));
+            if (!exists) {
+                mentions.add(mentioner);
+            }
+        }
+
+        return ReportResponseDto.from(report, null, mentions);
     }
 }
