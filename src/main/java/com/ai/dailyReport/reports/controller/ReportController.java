@@ -2,7 +2,6 @@ package com.ai.dailyReport.reports.controller;
 
 
 import com.ai.dailyReport.auth.service.AuthService;
-import com.ai.dailyReport.common.exception.UnauthorizedException;
 import com.ai.dailyReport.common.response.ApiResponse;
 import com.ai.dailyReport.reports.dto.ReportCreateDto;
 import com.ai.dailyReport.reports.dto.ReportResponseDto;
@@ -57,7 +56,7 @@ public class ReportController {
     Authentication authentication
   )
   {
-    List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, startDate, endDate);
+    List<ReportResponseDto> reports = reportService.findByUserIdAndDateRangeNoClickUp(userId, startDate, endDate);
     WeeklyPayload payload = new WeeklyPayload(startDate, endDate, reports);
     return ResponseEntity.ok(ApiResponse.success("주간 Report 조회에 성공했습니다.", payload));
   }
@@ -71,7 +70,7 @@ public class ReportController {
 	) {
 		Long userId = authService.getCurrentUserId(authentication);
 
-		List<ReportResponseDto> reports = reportService.findByUserIdAndDateRange(userId, startDate, endDate);
+    List<ReportResponseDto> reports = reportService.findByUserIdAndDateRangeNoClickUp(userId, startDate, endDate);
 		WeeklyPayload payload = new WeeklyPayload(startDate, endDate, reports);
 
 		return ResponseEntity.ok(ApiResponse.success("주간 Report 조회에 성공했습니다.", payload));
